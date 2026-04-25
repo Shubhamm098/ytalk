@@ -3,20 +3,19 @@ uvicorn[standard]
 python-dotenv
 pydantic
 
-# LangChain
+# LangChain - core only
 langchain
 langchain-core
 langchain-community
 langchain-huggingface
 langchain-text-splitters
 
-# Embeddings & Vector Store
-sentence-transformers
-chromadb
+# Lightweight vector store (no C++ build, no PyTorch)
+faiss-cpu
+
+# HuggingFace API only (no local models)
+huggingface-hub
+requests
 
 # YouTube Transcript
 youtube-transcript-api
-
-# HuggingFace
-huggingface-hub
-transformers
