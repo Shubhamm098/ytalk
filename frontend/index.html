@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>YTalk — YouTube Video Chatbot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+  /* ── Reset & base ─────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:         #0a0a0f;
+    --surface:    #13131a;
+    --card:       #1a1a24;
+    --border:     #2a2a3a;
+    --accent:     #e63946;
+    --accent-dim: rgba(230,57,70,0.15);
+    --accent2:    #ff8fa3;
+    --text:       #f0f0f5;
+    --muted:      #7a7a9a;
+    --user-bub:   #1e2140;
+    --bot-bub:    #1a1a2e;
+    --glow:       0 0 40px rgba(230,57,70,0.18);
+    --radius:     14px;
+    --font-head:  'Syne', sans-serif;
+    --font-body:  'DM Sans', sans-serif;
+  }
+
+  html, body { height: 100%; overflow: hidden; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    display: flex;
+    height: 100vh;
+  }
+
+  /* ── Sidebar ──────────────────────────────────────────── */
+  .sidebar {
+    width: 320px;
+    min-width: 300px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 28px 22px;
+    gap: 24px;
+    overflow-y: auto;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--font-head);
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+  }
+  .logo-icon {
+    width: 36px; height: 36px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .logo-icon svg { width: 18px; height: 18px; fill: white; }
+  .logo span.dim { color: var(--muted); }
+
+  /* URL input card */
+  .url-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .url-card label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .url-card input {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    padding: 10px 12px;
+    border-radius: 8px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .url-card input::placeholder { color: var(--muted); }
+  .url-card input:focus { border-color: var(--accent); }
+
+  /* HF token row */
+  .token-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .token-row label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .token-row input {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 0.8rem;
+    padding: 8px 12px;
+    border-radius: 8px;
+    outline: none;
+    transition: border-color 0.2s;
+    font-family: monospace;
+    letter-spacing: 0.5px;
+  }
+  .token-row input::placeholder { color: var(--muted); letter-spacing: 0; font-family: var(--font-body); }
+  .token-row input:focus { border-color: var(--accent); }
+
+  .btn-load {
+    background: var(--accent);
+    color: white;
+    border: none;
+    font-family: var(--font-head);
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    padding: 11px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .btn-load:hover { background: #c62833; transform: translateY(-1px); box-shadow: var(--glow); }
+  .btn-load:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+  /* Status badge */
+  .status-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    background: #0d1f12;
+    border: 1px solid #1a3a22;
+    color: #4ade80;
+    display: none;
+  }
+  .status-badge.show { display: flex; }
+  .status-badge.error { background: #200d0d; border-color: #3a1a1a; color: #f87171; }
+  .status-badge.loading { background: #0d0d20; border-color: #1a1a3a; color: #a5b4fc; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .dot.pulse { animation: pulse 1.4s infinite; }
+
+  @keyframes pulse {
+    0%,100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.8); }
+  }
+
+  /* Video info */
+  .video-info {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .video-info.show { display: flex; }
+  .video-thumb {
+    width: 100%;
+    aspect-ratio: 16/9;
+    border-radius: 8px;
+    object-fit: cover;
+    background: var(--border);
+  }
+  .video-id-label {
+    font-size: 0.7rem;
+    color: var(--muted);
+    letter-spacing: 0.5px;
+  }
+  .video-id-val {
+    font-family: monospace;
+    font-size: 0.85rem;
+    color: var(--accent2);
+  }
+  .transcript-preview {
+    font-size: 0.78rem;
+    color: var(--muted);
+    line-height: 1.6;
+    border-left: 2px solid var(--border);
+    padding-left: 10px;
+    max-height: 80px;
+    overflow: hidden;
+    position: relative;
+  }
+  .transcript-preview::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 30px;
+    background: linear-gradient(transparent, var(--card));
+  }
+
+  /* Loaded videos list */
+  .section-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 0 2px;
+  }
+  .video-list { display: flex; flex-direction: column; gap: 6px; }
+  .video-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.15s;
+    font-size: 0.8rem;
+  }
+  .video-chip:hover { border-color: var(--accent); background: var(--accent-dim); }
+  .video-chip.active { border-color: var(--accent); background: var(--accent-dim); }
+  .chip-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+  .chip-id { font-family: monospace; color: var(--text); flex: 1; }
+  .chip-del {
+    color: var(--muted);
+    font-size: 0.9rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: color 0.15s;
+  }
+  .chip-del:hover { color: var(--accent); }
+
+  /* ── Main chat area ───────────────────────────────────── */
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Top bar */
+  .topbar {
+    padding: 20px 28px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    background: var(--surface);
+  }
+  .topbar-title {
+    font-family: var(--font-head);
+    font-size: 1.1rem;
+    font-weight: 700;
+  }
+  .topbar-sub { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+  .active-pill {
+    background: var(--accent-dim);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-family: monospace;
+    display: none;
+  }
+  .active-pill.show { display: block; }
+
+  /* Messages */
+  .messages-wrap {
+    flex: 1;
+    overflow-y: auto;
+    padding: 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    scroll-behavior: smooth;
+  }
+  .messages-wrap::-webkit-scrollbar { width: 4px; }
+  .messages-wrap::-webkit-scrollbar-track { background: transparent; }
+  .messages-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* Empty state */
+  .empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    opacity: 0.5;
+    text-align: center;
+    padding: 40px;
+  }
+  .empty-icon { font-size: 3rem; }
+  .empty-state p { font-size: 0.9rem; color: var(--muted); max-width: 280px; line-height: 1.6; }
+
+  /* Message bubbles */
+  .msg { display: flex; gap: 12px; animation: fadeUp 0.3s ease; }
+  .msg.user { flex-direction: row-reverse; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .avatar {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+  .avatar.bot {
+    background: var(--accent);
+    color: white;
+    font-family: var(--font-head);
+  }
+  .avatar.user {
+    background: #2a2a4a;
+    color: var(--accent2);
+    font-family: var(--font-head);
+  }
+
+  .bubble {
+    max-width: 68%;
+    padding: 13px 17px;
+    border-radius: 16px;
+    font-size: 0.88rem;
+    line-height: 1.65;
+    position: relative;
+  }
+  .msg.bot .bubble {
+    background: var(--bot-bub);
+    border: 1px solid var(--border);
+    border-top-left-radius: 4px;
+    color: var(--text);
+  }
+  .msg.user .bubble {
+    background: var(--user-bub);
+    border: 1px solid #3a3a5a;
+    border-top-right-radius: 4px;
+    color: var(--text);
+  }
+
+  .msg-time {
+    font-size: 0.68rem;
+    color: var(--muted);
+    margin-top: 4px;
+    text-align: right;
+  }
+  .msg.user .msg-time { text-align: left; }
+
+  /* Typing indicator */
+  .typing { display: flex; gap: 4px; align-items: center; padding: 4px 0; }
+  .typing span {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--muted);
+    animation: bounce 1.2s infinite;
+  }
+  .typing span:nth-child(2) { animation-delay: 0.2s; }
+  .typing span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce {
+    0%,80%,100% { transform: translateY(0); opacity: 0.5; }
+    40% { transform: translateY(-6px); opacity: 1; }
+  }
+
+  /* Input bar */
+  .input-bar {
+    padding: 18px 28px 22px;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+  .input-row {
+    display: flex;
+    gap: 10px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 8px 8px 8px 16px;
+    transition: border-color 0.2s;
+  }
+  .input-row:focus-within { border-color: var(--accent); }
+  .chat-input {
+    flex: 1;
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    padding: 6px 0;
+    resize: none;
+  }
+  .chat-input::placeholder { color: var(--muted); }
+  .btn-send {
+    background: var(--accent);
+    border: none;
+    color: white;
+    width: 40px; height: 40px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .btn-send:hover { background: #c62833; transform: scale(1.05); }
+  .btn-send:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+  .btn-send svg { width: 16px; height: 16px; }
+
+  .input-hint { font-size: 0.72rem; color: var(--muted); margin-top: 8px; text-align: center; }
+
+  /* Suggested questions */
+  .suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 0 28px 12px;
+  }
+  .suggestion-chip {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .suggestion-chip:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+
+  /* Scrollbar for sidebar */
+  .sidebar::-webkit-scrollbar { width: 4px; }
+  .sidebar::-webkit-scrollbar-track { background: transparent; }
+  .sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* Responsive */
+  @media (max-width: 720px) {
+    .sidebar { width: 260px; min-width: 240px; padding: 18px 14px; }
+    .bubble { max-width: 85%; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Sidebar ──────────────────────────────────────────────── -->
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05A6.34 6.34 0 003.15 15.3a6.34 6.34 0 006.34 6.35 6.34 6.34 0 006.33-6.35V8.69a8.18 8.18 0 004.77 1.52V6.76a4.85 4.85 0 01-1-.07z"/></svg>
+    </div>
+    YTalk<span class="dim">.</span>
+  </div>
+
+  <div class="url-card">
+    <label>YouTube URL</label>
+    <input id="url-input" type="text" placeholder="https://youtube.com/watch?v=..."/>
+    <div class="token-row">
+      <label>HuggingFace Token</label>
+      <input id="hf-token" type="password" placeholder="hf_... (or set env var)"/>
+    </div>
+    <button class="btn-load" id="btn-load" onclick="loadVideo()">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+      Load Video
+    </button>
+    <div class="status-badge" id="status-badge">
+      <div class="dot" id="status-dot"></div>
+      <span id="status-text"></span>
+    </div>
+  </div>
+
+  <div class="video-info" id="video-info">
+    <img class="video-thumb" id="video-thumb" src="" alt="thumbnail"/>
+    <div class="video-id-label">VIDEO ID</div>
+    <div class="video-id-val" id="video-id-display"></div>
+    <div class="transcript-preview" id="transcript-preview"></div>
+  </div>
+
+  <div id="video-list-section" style="display:none; flex-direction:column; gap:8px;">
+    <div class="section-label">Loaded Videos</div>
+    <div class="video-list" id="video-list"></div>
+  </div>
+</aside>
+
+<!-- ── Main ──────────────────────────────────────────────────── -->
+<main class="main">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">Chat with Video</div>
+      <div class="topbar-sub">Ask anything about the loaded YouTube video</div>
+    </div>
+    <div class="active-pill" id="active-pill"></div>
+  </div>
+
+  <div class="messages-wrap" id="messages">
+    <div class="empty-state" id="empty-state">
+      <div class="empty-icon">🎬</div>
+      <p>Load a YouTube video from the sidebar to start chatting about its content.</p>
+    </div>
+  </div>
+
+  <div class="suggestions" id="suggestions" style="display:none;">
+    <span class="suggestion-chip" onclick="quickAsk('What is this video about?')">What is this video about?</span>
+    <span class="suggestion-chip" onclick="quickAsk('Summarize the key points')">Summarize key points</span>
+    <span class="suggestion-chip" onclick="quickAsk('What is the main takeaway?')">Main takeaway</span>
+  </div>
+
+  <div class="input-bar">
+    <div class="input-row">
+      <textarea
+        class="chat-input"
+        id="chat-input"
+        rows="1"
+        placeholder="Ask a question about the video..."
+        onkeydown="handleKey(event)"
+        oninput="autoResize(this)"
+        disabled
+      ></textarea>
+      <button class="btn-send" id="btn-send" onclick="sendMessage()" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+      </button>
+    </div>
+    <div class="input-hint">Press Enter to send · Shift+Enter for new line</div>
+  </div>
+</main>
+
+<script>
+const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'http://localhost:8000'
+  : '';  // same origin if served by FastAPI
+
+let currentVideoId = null;
+const loadedVideos = {};
+
+// ── Status helpers ────────────────────────────────────────────
+function setStatus(type, text) {
+  const badge = document.getElementById('status-badge');
+  const dot   = document.getElementById('status-dot');
+  const span  = document.getElementById('status-text');
+  badge.className = `status-badge show ${type}`;
+  dot.className   = `dot ${type === 'loading' ? 'pulse' : ''}`;
+  span.textContent = text;
+}
+function hideStatus() {
+  document.getElementById('status-badge').className = 'status-badge';
+}
+
+// ── Load video ────────────────────────────────────────────────
+async function loadVideo() {
+  const url   = document.getElementById('url-input').value.trim();
+  const token = document.getElementById('hf-token').value.trim();
+  if (!url) { setStatus('error', 'Please enter a YouTube URL'); return; }
+
+  const btn = document.getElementById('btn-load');
+  btn.disabled = true;
+  btn.innerHTML = `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2" stroke-linecap="round"/></svg> Loading…`;
+  setStatus('loading', 'Fetching transcript & building index…');
+
+  try {
+    const res = await fetch(`${API_BASE}/load`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ video_url: url, hf_token: token || null })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Unknown error');
+
+    const vid = data.video_id;
+    loadedVideos[vid] = data;
+    setCurrentVideo(vid, data);
+    renderVideoList();
+    setStatus('success', 'Ready to chat!');
+  } catch (err) {
+    setStatus('error', err.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg> Load Video`;
+  }
+}
+
+function setCurrentVideo(vid, data) {
+  currentVideoId = vid;
+
+  // Thumbnail
+  const thumb = document.getElementById('video-thumb');
+  thumb.src = `https://img.youtube.com/vi/${vid}/mqdefault.jpg`;
+
+  // Info card
+  document.getElementById('video-id-display').textContent = vid;
+  document.getElementById('transcript-preview').textContent = data.transcript_preview;
+  document.getElementById('video-info').classList.add('show');
+
+  // Active pill
+  const pill = document.getElementById('active-pill');
+  pill.textContent = vid;
+  pill.classList.add('show');
+
+  // Enable chat
+  document.getElementById('chat-input').disabled  = false;
+  document.getElementById('btn-send').disabled    = false;
+  document.getElementById('suggestions').style.display = 'flex';
+  document.getElementById('empty-state').style.display = 'none';
+}
+
+// ── Sidebar video list ────────────────────────────────────────
+function renderVideoList() {
+  const ids = Object.keys(loadedVideos);
+  const section = document.getElementById('video-list-section');
+  const list    = document.getElementById('video-list');
+
+  if (ids.length < 2) { section.style.display = 'none'; return; }
+
+  section.style.display = 'flex';
+  list.innerHTML = ids.map(id => `
+    <div class="video-chip ${id === currentVideoId ? 'active' : ''}" onclick="switchVideo('${id}')">
+      <div class="chip-dot"></div>
+      <span class="chip-id">${id}</span>
+      <button class="chip-del" onclick="event.stopPropagation();unloadVideo('${id}')">✕</button>
+    </div>`).join('');
+}
+
+function switchVideo(vid) {
+  setCurrentVideo(vid, loadedVideos[vid]);
+  renderVideoList();
+}
+
+async function unloadVideo(vid) {
+  await fetch(`${API_BASE}/unload/${vid}`, { method: 'DELETE' }).catch(() => {});
+  delete loadedVideos[vid];
+  if (currentVideoId === vid) {
+    const remaining = Object.keys(loadedVideos);
+    if (remaining.length) switchVideo(remaining[0]);
+    else {
+      currentVideoId = null;
+      document.getElementById('active-pill').classList.remove('show');
+      document.getElementById('video-info').classList.remove('show');
+      document.getElementById('chat-input').disabled = true;
+      document.getElementById('btn-send').disabled   = true;
+      document.getElementById('suggestions').style.display = 'none';
+    }
+  }
+  renderVideoList();
+}
+
+// ── Chat ──────────────────────────────────────────────────────
+function addMessage(role, content) {
+  const wrap = document.getElementById('messages');
+  const empty = document.getElementById('empty-state');
+  if (empty) empty.style.display = 'none';
+
+  const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+  div.innerHTML = `
+    <div class="avatar ${role}">${role === 'bot' ? 'YT' : 'ME'}</div>
+    <div>
+      <div class="bubble">${escapeHtml(content)}</div>
+      <div class="msg-time">${now}</div>
+    </div>`;
+  wrap.appendChild(div);
+  wrap.scrollTop = wrap.scrollHeight;
+  return div;
+}
+
+function addTyping() {
+  const wrap = document.getElementById('messages');
+  const div  = document.createElement('div');
+  div.className = 'msg bot';
+  div.id = 'typing-indicator';
+  div.innerHTML = `
+    <div class="avatar bot">YT</div>
+    <div><div class="bubble"><div class="typing"><span></span><span></span><span></span></div></div></div>`;
+  wrap.appendChild(div);
+  wrap.scrollTop = wrap.scrollHeight;
+}
+
+function removeTyping() {
+  const el = document.getElementById('typing-indicator');
+  if (el) el.remove();
+}
+
+async function sendMessage() {
+  const input = document.getElementById('chat-input');
+  const q = input.value.trim();
+  if (!q || !currentVideoId) return;
+
+  input.value = '';
+  input.style.height = 'auto';
+  input.disabled = true;
+  document.getElementById('btn-send').disabled = true;
+
+  addMessage('user', q);
+  addTyping();
+
+  try {
+    const res = await fetch(`${API_BASE}/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ video_id: currentVideoId, question: q })
+    });
+    const data = await res.json();
+    removeTyping();
+    if (!res.ok) throw new Error(data.detail || 'Error from server');
+    addMessage('bot', data.answer);
+  } catch (err) {
+    removeTyping();
+    addMessage('bot', `⚠️ ${err.message}`);
+  } finally {
+    input.disabled = false;
+    document.getElementById('btn-send').disabled = false;
+    input.focus();
+  }
+}
+
+function quickAsk(q) {
+  document.getElementById('chat-input').value = q;
+  sendMessage();
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+}
+</script>
+</body>
+</html>
