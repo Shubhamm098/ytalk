@@ -1,0 +1,22 @@
+fastapi
+uvicorn[standard]
+python-dotenv
+pydantic
+
+# LangChain
+langchain
+langchain-core
+langchain-community
+langchain-huggingface
+langchain-text-splitters
+
+# Embeddings & Vector Store
+sentence-transformers
+chromadb
+
+# YouTube Transcript
+youtube-transcript-api
+
+# HuggingFace
+huggingface-hub
+transformers
