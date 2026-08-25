@@ -72,7 +72,7 @@ def build_chain(video_id: str):
 
     # 1. Fetch transcript
     api = YouTubeTranscriptApi()
-    transcript_list = api.fetch(video_id, languages=["en"]).to_raw_data()
+    transcript_list = api.list_transcripts(video_id, cookies='cookies.txt').find_transcript(["en"]).fetch()
     transcript = " ".join([entry["text"] for entry in transcript_list])
 
     # 2. Chunk
