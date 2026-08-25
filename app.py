@@ -71,8 +71,11 @@ def build_chain(video_id: str):
     HF_TOKEN = os.getenv("HUGGINGFACEHUB_API_TOKEN")
 
     # 1. Fetch transcript
-    api = YouTubeTranscriptApi()
-    transcript_list = api.list_transcripts(video_id, cookies='cookies.txt').find_transcript(["en"]).fetch()
+    transcript_list = YouTubeTranscriptApi.get_transcript(
+        video_id, 
+        languages=["en"],
+        cookies="cookies.txt"
+    )
     transcript = " ".join([entry["text"] for entry in transcript_list])
 
     # 2. Chunk
